@@ -332,6 +332,50 @@ class BiliBiliIE(BilibiliBaseIE):
         }
 
 
+class BiliBiliFestivalIE(BiliBiliIE):
+    #https://www.bilibili.com/festival/genshin2nd?bvid=BV1ZP411J7vN
+
+    _VALID_URL = r'https?://www\.bilibili\.com/festival/(?P<id>.*)\?bvid=BV[^/?#&]+'
+
+    def query_play_info(self, episode):
+        video_id = episode['bvid']
+
+        # note: the downloaded json seems to contain invalid links from time to time
+
+        play_info =  self._download_json(
+            'https://api.bilibili.com/x/player/playurl', video_id, query={
+                'avid' : episode['aid'],
+                'bvid': video_id,
+                'cid': episode['cid'],
+                # matching qn to the intented download quality seem to achieve better result
+                'qn': 112,
+                'fnver': 0,
+                # fnval = 4048 for enableAV1, fnval = 2e3 for enableHEVC, fnval = 16 for mseSupported
+                'fnval': 4048,
+                'fourk': 1
+                },
+                note='Downloading play info')['data']
+
+        return {
+            'id': video_id,
+            'formats': self.extract_formats(play_info),
+            'title': episode['title'],
+            'thumbnail': episode['cover'],
+            'duration': float_or_none(play_info.get('timelength'), scale=1000)
+        }
+
+    def _real_extract(self, url):
+        media_id = self._match_id(url)
+        webpage = self._download_webpage(url, media_id)
+
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
+
+        # there is also 'sectionEpisodes' which seem to list by section
+        return self.playlist_result((
+            self.query_play_info(episode)
+            for episode in initial_state['sectionEpisodes']), media_id)
+
+
 class BiliBiliBangumiIE(BilibiliBaseIE):
     _VALID_URL = r'(?x)https?://www\.bilibili\.com/bangumi/play/(?P<id>(?:ss|ep)\d+)'
 

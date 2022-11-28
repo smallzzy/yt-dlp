@@ -198,6 +198,7 @@ from .bigo import BigoIE
 from .bild import BildIE
 from .bilibili import (
     BiliBiliIE,
+    BiliBiliFestivalIE,
     BiliBiliBangumiIE,
     BiliBiliBangumiMediaIE,
     BiliBiliSearchIE,
